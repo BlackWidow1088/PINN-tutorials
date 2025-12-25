@@ -186,11 +186,21 @@ def plot_residual_histograms(stats: Dict) -> go.Figure:
             row=row, col=col
         )
         
-        # Add statistics annotations
+        # Add statistics annotations using paper coordinates
+        # Calculate paper coordinates for each subplot in 2x2 grid
+        subplot_idx = residuals.index(residual)
+        # Paper coordinates: x from 0-1 (left to right), y from 0-1 (bottom to top)
+        # For 2x2: (row, col) = (1,1) -> x=0.25, y=0.75; (1,2) -> x=0.75, y=0.75; etc.
+        col = (subplot_idx % 2)  # 0 or 1
+        row = (subplot_idx // 2)  # 0 or 1
+        x_paper = 0.25 + col * 0.5  # 0.25 or 0.75
+        y_paper = 0.75 - row * 0.5  # 0.75 or 0.25
+        
         fig.add_annotation(
-            x=0.5, y=0.95,
-            xref=f'x{residuals.index(residual) + 1} domain',
-            yref=f'y{residuals.index(residual) + 1} domain',
+            x=x_paper,
+            y=y_paper,
+            xref='paper',
+            yref='paper',
             text=f"Mean: {mean:.4e}<br>Std: {std:.4e}",
             showarrow=False,
             font=dict(size=10),

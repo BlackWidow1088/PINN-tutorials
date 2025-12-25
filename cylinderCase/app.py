@@ -98,7 +98,55 @@ case_dir = script_dir  # OpenFOAM case files are in same directory as app.py
 
 # Main content
 st.title("🔬 PINN Model Verification")
-st.markdown("Interactive verification tool for Physics-Informed Neural Network predictions")
+st.markdown("""
+**Interactive verification tool for Physics-Informed Neural Network predictions**
+
+This application verifies a Physics-Informed Neural Network (PINN) solving the Navier-Stokes equations for 
+water flow through a right circular cylinder. The flow is driven by a pressure difference of 10,000 Pascal 
+(approximately 0.1 atm) at the inlet and 0 atm at the outlet.
+
+The neural network was trained using the ADAM optimizer and subsequently fine-tuned with the L-BFGS optimizer. 
+Work is currently in progress to minimize the training losses and improve model accuracy.
+""")
+
+# Display equations and loss function
+with st.expander("📐 Physics Equations and Loss Function", expanded=True):
+    st.markdown("### Navier-Stokes Equations and Loss Function")
+    
+    # Create a compact 4-column single-row layout
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # Equation 1 - Continuity
+        eq1_path = os.path.join(script_dir, "equation1.jpeg")
+        if os.path.exists(eq1_path):
+            st.image(eq1_path, caption="**Continuity**", use_container_width=False, width=200)
+        else:
+            st.warning("equation1.jpeg not found")
+    
+    with col2:
+        # Equation 2 - Momentum (x)
+        eq2_path = os.path.join(script_dir, "equation2.jpeg")
+        if os.path.exists(eq2_path):
+            st.image(eq2_path, caption="**x-Momentum**", use_container_width=False, width=200)
+        else:
+            st.warning("equation2.jpeg not found")
+    
+    with col3:
+        # Equation 3 - Momentum (y/z)
+        eq3_path = os.path.join(script_dir, "equation3.jpeg")
+        if os.path.exists(eq3_path):
+            st.image(eq3_path, caption="**y/z-Momentum**", use_container_width=False, width=200)
+        else:
+            st.warning("equation3.jpeg not found")
+    
+    with col4:
+        # Loss Function
+        loss_path = os.path.join(script_dir, "loss_function.jpeg")
+        if os.path.exists(loss_path):
+            st.image(loss_path, caption="**Loss Function**", use_container_width=False, width=200)
+        else:
+            st.warning("loss_function.jpeg not found")
 
 # Load model automatically (cached, only loads once)
 if st.session_state.model is None:
@@ -142,6 +190,7 @@ else:
 
 # Coordinate input section
 st.header("📍 Coordinate Input")
+st.caption("💡 Note: All coordinate values are in metres (m)")
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -225,16 +274,15 @@ if st.button("🔍 Evaluate", type="primary"):
 if 'pinn_results' in st.session_state and 'gt_results' in st.session_state:
     st.header("📊 Results")
     
-    # 3D Visualization
-    st.subheader("🎨 3D Pipe Visualization")
-    x_coord, y_coord, z_coord = st.session_state.evaluated_coords
-    fig_3d = plot_3d_pipe_with_point(x_coord, y_coord, z_coord)
-    st.plotly_chart(fig_3d, use_container_width=True)
+    # 1. 3D Visualization
+    with st.expander("🎨 3D Pipe Visualization", expanded=True):
+        x_coord, y_coord, z_coord = st.session_state.evaluated_coords
+        fig_3d = plot_3d_pipe_with_point(x_coord, y_coord, z_coord)
+        st.plotly_chart(fig_3d, use_container_width=True, key="plot_3d_pipe")
     
-    # Comparison table
-    st.subheader("📋 Comparison Table")
-    
-    comparison_data = {
+    # 2. Comparison table
+    with st.expander("📋 Comparison Table", expanded=True):
+        comparison_data = {
         'Variable': ['u (m/s)', 'v (m/s)', 'w (m/s)', 'p (Pa)'],
         'PINN Prediction': [
             f"{st.session_state.pinn_results['u']:.6e}",
@@ -260,134 +308,116 @@ if 'pinn_results' in st.session_state and 'gt_results' in st.session_state:
             f"{100 * abs(st.session_state.pinn_results['w'] - st.session_state.gt_results['w']) / (abs(st.session_state.gt_results['w']) + 1e-10):.4f}",
             f"{100 * abs(st.session_state.pinn_results['p'] - st.session_state.gt_results['p']) / (abs(st.session_state.gt_results['p']) + 1e-10):.4f}"
         ]
-    }
-    
-    df_comparison = pd.DataFrame(comparison_data)
-    st.dataframe(df_comparison, use_container_width=True, hide_index=True)
-    
-    # Navier-Stokes Residuals
-    st.subheader("⚗️ Navier-Stokes Residuals")
-    
-    residual_data = {
-        'Residual': ['r1 (Continuity)', 'r2 (x-momentum)', 'r3 (y-momentum)', 'r4 (z-momentum)'],
-        'PINN Value': [
-            f"{st.session_state.pinn_results['r1']:.6e}",
-            f"{st.session_state.pinn_results['r2']:.6e}",
-            f"{st.session_state.pinn_results['r3']:.6e}",
-            f"{st.session_state.pinn_results['r4']:.6e}"
-        ],
-        'Ground Truth Value': [
-            f"{st.session_state.gt_results['r1']:.6e}",
-            f"{st.session_state.gt_results['r2']:.6e}",
-            f"{st.session_state.gt_results['r3']:.6e}",
-            f"{st.session_state.gt_results['r4']:.6e}"
-        ]
-    }
-    
-    df_residuals = pd.DataFrame(residual_data)
-    st.dataframe(df_residuals, use_container_width=True, hide_index=True)
-    
-    # Enhanced plots
-    st.subheader("📈 Visualization Plots")
-    
-    # Comparison charts
-    fig_comparison = plot_comparison_charts(
-        st.session_state.pinn_results,
-        st.session_state.gt_results
-    )
-    st.plotly_chart(fig_comparison, use_container_width=True)
-    
-    # Residual statistics section
-    st.subheader("📊 Residual Statistics")
-    
-    if st.button("📈 Compute Residual Statistics"):
-        with st.spinner("Computing residual statistics on sample points..."):
-            try:
-                stats = compute_residual_statistics(
-                    st.session_state.data['points'],
-                    st.session_state.model,
-                    st.session_state.normalizer,
-                    st.session_state.nu,
-                    st.session_state.rho,
-                    device,
-                    n_samples=1000
-                )
-                
-                st.session_state.residual_stats = stats
-                
-                # Display statistics
-                fig_stats = plot_residual_statistics(stats)
-                st.plotly_chart(fig_stats, use_container_width=True)
-                
-                # Histograms
-                fig_hist = plot_residual_histograms(stats)
-                st.plotly_chart(fig_hist, use_container_width=True)
-                
-            except Exception as e:
-                st.error(f"❌ Error computing statistics: {str(e)}")
-    
-    if 'residual_stats' in st.session_state:
-        stats = st.session_state.residual_stats
+        }
         
-        # Display statistics table
-        stats_rows = []
-        for residual_name in ['r1', 'r2', 'r3', 'r4']:
-            stats_rows.append({
-                'Residual': residual_name,
-                'Mean': f"{stats[residual_name]['mean']:.6e}",
-                'Std Dev': f"{stats[residual_name]['std']:.6e}",
-                'Max |Value|': f"{stats[residual_name]['max']:.6e}",
-                'Min Value': f"{stats[residual_name]['min']:.6e}",
-                'L2 Norm': f"{stats[residual_name]['l2_norm']:.6e}"
-            })
-        
-        df_stats = pd.DataFrame(stats_rows)
-        st.dataframe(df_stats, use_container_width=True, hide_index=True)
-        
-        # Re-display plots
-        fig_stats = plot_residual_statistics(stats)
-        st.plotly_chart(fig_stats, use_container_width=True)
-        
-        fig_hist = plot_residual_histograms(stats)
-        st.plotly_chart(fig_hist, use_container_width=True)
+        df_comparison = pd.DataFrame(comparison_data)
+        st.dataframe(df_comparison, use_container_width=True, hide_index=True)
     
-    # Verification Report
-    st.subheader("📄 Verification Report")
+    # 3. Navier-Stokes Residuals
+    with st.expander("⚗️ Navier-Stokes Residuals", expanded=True):
+        residual_data = {
+            'Residual': ['r1 (Continuity)', 'r2 (x-momentum)', 'r3 (y-momentum)', 'r4 (z-momentum)'],
+            'PINN Value': [
+                f"{st.session_state.pinn_results['r1']:.6e}",
+                f"{st.session_state.pinn_results['r2']:.6e}",
+                f"{st.session_state.pinn_results['r3']:.6e}",
+                f"{st.session_state.pinn_results['r4']:.6e}"
+            ],
+            'Ground Truth Value': [
+                f"{st.session_state.gt_results['r1']:.6e}",
+                f"{st.session_state.gt_results['r2']:.6e}",
+                f"{st.session_state.gt_results['r3']:.6e}",
+                f"{st.session_state.gt_results['r4']:.6e}"
+            ]
+        }
+        
+        df_residuals = pd.DataFrame(residual_data)
+        st.dataframe(df_residuals, use_container_width=True, hide_index=True)
     
-    if st.button("📥 Generate Report"):
-        with st.spinner("Generating verification report..."):
-            try:
-                report = generate_verification_report(
-                    st.session_state.pinn_results,
-                    st.session_state.gt_results,
-                    st.session_state.evaluated_coords,
-                    st.session_state.residual_stats if 'residual_stats' in st.session_state else None,
-                    st.session_state.nu,
-                    st.session_state.rho
-                )
-                
-                st.session_state.report = report
-                
-                # Display report
-                st.markdown(report)
-                
-                # Download button
-                st.download_button(
-                    label="💾 Download Report",
-                    data=report,
-                    file_name="pinn_verification_report.md",
-                    mime="text/markdown"
-                )
-                
-            except Exception as e:
-                st.error(f"❌ Error generating report: {str(e)}")
-    
-    if 'report' in st.session_state:
-        st.markdown(st.session_state.report)
-        st.download_button(
-            label="💾 Download Report",
-            data=st.session_state.report,
-            file_name="pinn_verification_report.md",
-            mime="text/markdown"
+    # 4. Enhanced plots
+    with st.expander("📈 Visualization Plots", expanded=True):
+        # Comparison charts
+        fig_comparison = plot_comparison_charts(
+            st.session_state.pinn_results,
+            st.session_state.gt_results
         )
+        st.plotly_chart(fig_comparison, use_container_width=True, key="plot_comparison")
+    
+    # 5. Residual statistics section
+    with st.expander("📊 Residual Statistics", expanded=False):
+        if st.button("📈 Compute Residual Statistics", key="compute_stats_btn"):
+            with st.spinner("Computing residual statistics on sample points..."):
+                try:
+                    stats = compute_residual_statistics(
+                        st.session_state.data['points'],
+                        st.session_state.model,
+                        st.session_state.normalizer,
+                        st.session_state.nu,
+                        st.session_state.rho,
+                        device,
+                        n_samples=1000
+                    )
+                    
+                    st.session_state.residual_stats = stats
+                    
+                except Exception as e:
+                    st.error(f"❌ Error computing statistics: {str(e)}")
+        
+        # Display statistics if available (only once, not duplicated)
+        if 'residual_stats' in st.session_state:
+            stats = st.session_state.residual_stats
+            
+            # Display statistics table
+            stats_rows = []
+            for residual_name in ['r1', 'r2', 'r3', 'r4']:
+                stats_rows.append({
+                    'Residual': residual_name,
+                    'Mean': f"{stats[residual_name]['mean']:.6e}",
+                    'Std Dev': f"{stats[residual_name]['std']:.6e}",
+                    'Max |Value|': f"{stats[residual_name]['max']:.6e}",
+                    'Min Value': f"{stats[residual_name]['min']:.6e}",
+                    'L2 Norm': f"{stats[residual_name]['l2_norm']:.6e}"
+                })
+            
+            df_stats = pd.DataFrame(stats_rows)
+            st.dataframe(df_stats, use_container_width=True, hide_index=True)
+            
+            # Display plots (only once)
+            fig_stats = plot_residual_statistics(stats)
+            st.plotly_chart(fig_stats, use_container_width=True, key="plot_residual_stats")
+            
+            fig_hist = plot_residual_histograms(stats)
+            st.plotly_chart(fig_hist, use_container_width=True, key="plot_residual_histograms")
+    
+    # 6. Verification Report
+    with st.expander("📄 Verification Report", expanded=False):
+        if st.button("📥 Generate Report", key="generate_report_btn"):
+            with st.spinner("Generating verification report..."):
+                try:
+                    report = generate_verification_report(
+                        st.session_state.pinn_results,
+                        st.session_state.gt_results,
+                        st.session_state.evaluated_coords,
+                        st.session_state.residual_stats if 'residual_stats' in st.session_state else None,
+                        st.session_state.nu,
+                        st.session_state.rho
+                    )
+                    
+                    st.session_state.report = report
+                    
+                except Exception as e:
+                    st.error(f"❌ Error generating report: {str(e)}")
+        
+        if 'report' in st.session_state:
+            # Display report
+            st.markdown(st.session_state.report)
+            
+            # Download button
+            st.download_button(
+                label="💾 Download Report",
+                data=st.session_state.report,
+                file_name="pinn_verification_report.md",
+                mime="text/markdown",
+                key="download_report_btn"
+            )
 
