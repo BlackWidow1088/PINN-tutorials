@@ -1,0 +1,88 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  11
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+convertToMeters 1;
+
+// Pipe radius = 1
+// Pipe length = 5 (z = -2.5 to +2.5)
+
+vertices
+(
+    // inlet (z = -2.5)
+    ( 1  0 -2.5)   // 0
+    ( 0  1 -2.5)   // 1
+    (-1  0 -2.5)   // 2
+    ( 0 -1 -2.5)   // 3
+
+    // outlet (z = +2.5)
+    ( 1  0  2.5)   // 4
+    ( 0  1  2.5)   // 5
+    (-1  0  2.5)   // 6
+    ( 0 -1  2.5)   // 7
+);
+
+blocks
+(
+    hex (0 1 2 3  4 5 6 7) (40 40 80) simpleGrading (1 1 1)
+);
+
+edges
+(
+    arc 0 1 ( 0.707  0.707 -2.5)
+    arc 1 2 (-0.707  0.707 -2.5)
+    arc 2 3 (-0.707 -0.707 -2.5)
+    arc 3 0 ( 0.707 -0.707 -2.5)
+
+    arc 4 5 ( 0.707  0.707  2.5)
+    arc 5 6 (-0.707  0.707  2.5)
+    arc 6 7 (-0.707 -0.707  2.5)
+    arc 7 4 ( 0.707 -0.707  2.5)
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+
+    wall
+    {
+        type wall;
+        faces
+        (
+            (0 4 5 1)
+            (1 5 6 2)
+            (2 6 7 3)
+            (3 7 4 0)
+        );
+    }
+);
+
+mergePatchPairs ();
+
