@@ -84,8 +84,17 @@ selected_time = st.sidebar.selectbox(
 )
 
 # Auto-load model and data
-model_path = "pinn_model.pt"  # Relative path - model is in same directory
-case_dir = "."  # Current directory - OpenFOAM case files are in same directory
+# Use paths relative to the script location (works on Streamlit Cloud)
+# Handle both local execution and Streamlit Cloud deployment
+try:
+    # Try to get the directory where app.py is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    # Fallback for Streamlit Cloud or when __file__ is not available
+    script_dir = os.getcwd()
+    
+model_path = os.path.join(script_dir, "pinn_model.pt")  # Model is in same directory as app.py
+case_dir = script_dir  # OpenFOAM case files are in same directory as app.py
 
 # Main content
 st.title("🔬 PINN Model Verification")
@@ -94,12 +103,20 @@ st.markdown("Interactive verification tool for Physics-Informed Neural Network p
 # Load model automatically (cached, only loads once)
 if st.session_state.model is None:
     with st.spinner("Loading model..."):
+        # Check if model file exists
+        if not os.path.exists(model_path):
+            st.error(f"❌ Model file not found at: {model_path}")
+            st.error(f"Current working directory: {os.getcwd()}")
+            st.error(f"Script directory: {script_dir}")
+            st.error(f"Files in script directory: {', '.join(os.listdir(script_dir)[:10])}")
+            st.stop()
         try:
             model, normalizer = load_model_cached(model_path, device)
             st.session_state.model = model
             st.session_state.normalizer = normalizer
         except Exception as e:
             st.error(f"❌ Error loading model: {str(e)}")
+            st.error(f"Model path attempted: {model_path}")
             st.stop()
 else:
     model = st.session_state.model
