@@ -60,15 +60,19 @@ if 'device' not in st.session_state:
 device = st.session_state.device
 torch.set_default_dtype(torch.float64)
 
+# Auto-load model and data using cached functions
+@st.cache_resource
+def load_model_cached(model_path: str, device: torch.device):
+    """Load and cache the PINN model"""
+    return load_trained_model(model_path, device)
+
+@st.cache_data
+def load_data_cached(case_dir: str, time_dir: str):
+    """Load and cache simulation data"""
+    return load_simulation_data_for_time(case_dir, time_dir)
+
 # Sidebar
 st.sidebar.title("⚙️ Configuration")
-
-# Model path
-model_path = st.sidebar.text_input(
-    "Model Path",
-    value="pinn_model.pt",
-    help="Path to the trained PINN model file"
-)
 
 # Time step selector
 time_steps = ['100', '200', '300', '400', '500', '600', '700', '800', '900', '1000']
@@ -79,48 +83,45 @@ selected_time = st.sidebar.selectbox(
     help="Select the time step for ground truth data"
 )
 
-# Case directory
-case_dir = st.sidebar.text_input(
-    "Case Directory",
-    value="/Users/abhijeetchavan/Desktop/cylinderCase",
-    help="Path to OpenFOAM case directory"
-)
-
-# Load model button
-if st.sidebar.button("🔄 Load Model", type="primary"):
-    with st.spinner("Loading model..."):
-        try:
-            model, normalizer = load_trained_model(model_path, device)
-            st.session_state.model = model
-            st.session_state.normalizer = normalizer
-            st.sidebar.success("✅ Model loaded successfully!")
-        except Exception as e:
-            st.sidebar.error(f"❌ Error loading model: {str(e)}")
-
-# Load data button
-if st.sidebar.button("📊 Load Simulation Data"):
-    with st.spinner(f"Loading data from time step {selected_time}..."):
-        try:
-            data = load_simulation_data_for_time(case_dir, selected_time)
-            st.session_state.data = data
-            st.session_state.nu = data['nu']
-            st.session_state.rho = data['rho']
-            st.sidebar.success(f"✅ Data loaded successfully! ({len(data['points'])} points)")
-        except Exception as e:
-            st.sidebar.error(f"❌ Error loading data: {str(e)}")
+# Auto-load model and data
+model_path = "pinn_model.pt"  # Relative path - model is in same directory
+case_dir = "."  # Current directory - OpenFOAM case files are in same directory
 
 # Main content
 st.title("🔬 PINN Model Verification")
 st.markdown("Interactive verification tool for Physics-Informed Neural Network predictions")
 
-# Check if model and data are loaded
+# Load model automatically (cached, only loads once)
 if st.session_state.model is None:
-    st.warning("⚠️ Please load the model first using the sidebar.")
-    st.stop()
+    with st.spinner("Loading model..."):
+        try:
+            model, normalizer = load_model_cached(model_path, device)
+            st.session_state.model = model
+            st.session_state.normalizer = normalizer
+        except Exception as e:
+            st.error(f"❌ Error loading model: {str(e)}")
+            st.stop()
+else:
+    model = st.session_state.model
+    normalizer = st.session_state.normalizer
 
-if st.session_state.data is None:
-    st.warning("⚠️ Please load simulation data first using the sidebar.")
-    st.stop()
+# Load data automatically (reloads when time step changes)
+# Check if we need to reload data (time step changed or not loaded)
+if ('selected_time' not in st.session_state or 
+    st.session_state.selected_time != selected_time or 
+    st.session_state.data is None):
+    with st.spinner(f"Loading simulation data from time step {selected_time}..."):
+        try:
+            data = load_data_cached(case_dir, selected_time)
+            st.session_state.data = data
+            st.session_state.nu = data['nu']
+            st.session_state.rho = data['rho']
+            st.session_state.selected_time = selected_time
+        except Exception as e:
+            st.error(f"❌ Error loading simulation data: {str(e)}")
+            st.stop()
+else:
+    data = st.session_state.data
 
 # Coordinate input section
 st.header("📍 Coordinate Input")

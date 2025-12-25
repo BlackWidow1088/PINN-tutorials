@@ -25,70 +25,29 @@ def load_trained_model(model_path: str, device: torch.device) -> Tuple[nn.Module
         model: Loaded PINN model
         normalizer: DataNormalizer instance with fitted parameters
     """
-    # #region agent log
-    import json
     import numpy as np
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"A","location":"verify_pinn.py:28","message":"load_trained_model entry","data":{"model_path":model_path,"device":str(device),"torch_version":torch.__version__,"numpy_version":np.__version__,"has_numpy_core":hasattr(np, 'core'),"has_numpy__core":hasattr(np, '_core')},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
-    
-    # #region agent log
-    import json
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"verify_pinn.py:29","message":"Before torch.load","data":{"weights_only_default":True if hasattr(torch.load, '__defaults__') else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
     
     try:
         # Use weights_only=False for trusted local files (PyTorch 2.6+ default changed)
         # Also ensure DataNormalizer is available in __main__ for unpickling
         import sys
         import __main__
-        # #region agent log
-        import json
-        with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"H","location":"verify_pinn.py:42","message":"Before DataNormalizer injection","data":{"has_dataclass_in_main":hasattr(__main__, 'DataNormalizer'),"main_module":str(__main__)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-        # #endregion agent log
         if not hasattr(__main__, 'DataNormalizer'):
             __main__.DataNormalizer = DataNormalizer
-            # #region agent log
-            import json
-            with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"I","location":"verify_pinn.py:47","message":"DataNormalizer injected into __main__","data":{"injected":True},"timestamp":int(__import__('time').time()*1000)})+'\n')
-            # #endregion agent log
         
         # Load checkpoint with numpy version compatibility
         # Safely map numpy._core to numpy.core in sys.modules only (no attribute modification)
         import numpy as np
         import sys
-        # #region agent log
-        import json
-        with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"K","location":"verify_pinn.py:59","message":"Before torch.load","data":{"numpy_version":np.__version__,"has_numpy_core":hasattr(np, 'core'),"has_numpy__core":hasattr(np, '_core'),"numpy__core_in_sys_modules":"numpy._core" in sys.modules},"timestamp":int(__import__('time').time()*1000)})+'\n')
-        # #endregion agent log
         
         # Only modify sys.modules - do NOT touch numpy attributes to avoid segfaults
         if not hasattr(np, '_core') and 'numpy._core' not in sys.modules:
             import numpy.core
             sys.modules['numpy._core'] = numpy.core
-            # #region agent log
-            import json
-            with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"Q","location":"verify_pinn.py:70","message":"Mapped numpy._core to numpy.core in sys.modules","data":{"numpy__core_in_sys_modules":"numpy._core" in sys.modules,"numpy_core_type":type(sys.modules.get('numpy._core')).__name__ if 'numpy._core' in sys.modules else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-            # #endregion agent log
         
         try:
             checkpoint = torch.load(model_path, map_location=device, weights_only=False)
-            # #region agent log
-            import json
-            with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"J","location":"verify_pinn.py:102","message":"torch.load succeeded","data":{"checkpoint_keys":list(checkpoint.keys()) if checkpoint else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-            # #endregion agent log
         except (SystemError, ModuleNotFoundError, AttributeError) as e:
-            # #region agent log
-            import json
-            with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"P","location":"verify_pinn.py:108","message":"torch.load failed with numpy version mismatch","data":{"error_type":type(e).__name__,"error_message":str(e)[:300]},"timestamp":int(__import__('time').time()*1000)})+'\n')
-            # #endregion agent log
             # Re-raise with helpful message
             raise RuntimeError(
                 f"Failed to load model due to numpy version mismatch. "
@@ -97,38 +56,15 @@ def load_trained_model(model_path: str, device: torch.device) -> Tuple[nn.Module
                 f"Original error: {str(e)}"
             ) from e
     except Exception as e:
-        # #region agent log
-        import json
-        with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"D","location":"verify_pinn.py:31","message":"torch.load failed","data":{"error_type":type(e).__name__,"error_message":str(e)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-        # #endregion agent log
         raise
-    
-    # #region agent log
-    import json
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"E","location":"verify_pinn.py:33","message":"Before model reconstruction","data":{"has_model_state_dict":"model_state_dict" in checkpoint,"has_normalizer":"normalizer" in checkpoint,"normalizer_type":type(checkpoint.get('normalizer')).__name__ if 'normalizer' in checkpoint else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
     
     # Reconstruct model architecture (same as training)
     model = PINN(input_dim=3, hidden_layers=[50, 50, 50, 50], output_dim=4).to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     
-    # #region agent log
-    import json
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"F","location":"verify_pinn.py:40","message":"Before normalizer access","data":{"normalizer_in_checkpoint":"normalizer" in checkpoint},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
-    
     # Get normalizer
     normalizer = checkpoint['normalizer']
-    
-    # #region agent log
-    import json
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"G","location":"verify_pinn.py:44","message":"load_trained_model exit","data":{"normalizer_type":type(normalizer).__name__ if normalizer else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
     
     return model, normalizer
 

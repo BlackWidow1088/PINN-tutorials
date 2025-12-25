@@ -128,11 +128,6 @@ class OpenFOAMDataLoader:
             if U is not None and len(U) > len(cell_centers):
                 U = U[:len(cell_centers)]
         
-        # #region agent log
-        import json
-        with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"D","location":"pinn.py:115","message":"Data size matching","data":{"n_cells":n_cells,"n_points":len(cell_centers),"p_size":len(p) if p is not None else 0,"U_size":len(U) if U is not None else 0,"valid_indices_size":len(valid_indices)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-        # #endregion agent log
         
         return {
             'points': cell_centers[valid_indices],
@@ -289,11 +284,6 @@ class PhysicsInformedLoss:
         Compute total loss: L = λ_data * L_data + λ_physics * L_physics
         where L_physics = MSE(r1) + MSE(r2) + MSE(r3) + MSE(r4)
         """
-        # #region agent log
-        import json
-        with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"post-fix","hypothesisId":"A","location":"pinn.py:271","message":"compute_loss entry","data":{"x_colloc_shape":list(x_colloc.shape) if x_colloc is not None else None,"u_pred_shape":list(u_pred.shape) if u_pred is not None else None,"x_data_shape":list(x_data.shape) if x_data is not None else None,"u_data_shape":list(u_data.shape) if u_data is not None else None,"u_pred_data_shape":list(u_pred_data.shape) if u_pred_data is not None else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-        # #endregion agent log
         
         # Physics loss (collocation points)
         r1, r2, r3, r4 = self.compute_residuals(x_colloc, u_pred, v_pred, w_pred, p_pred)
@@ -304,17 +294,7 @@ class PhysicsInformedLoss:
         # Data loss (if provided)
         loss_data = torch.tensor(0.0, device=self.device)
         if x_data is not None and u_data is not None and u_pred_data is not None:
-            # #region agent log
-            import json
-            with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"pinn.py:306","message":"Before data loss computation","data":{"u_pred_data_shape":list(u_pred_data.shape) if u_pred_data is not None else None,"u_data_shape":list(u_data.shape) if u_data is not None else None,"x_data_shape":list(x_data.shape) if x_data is not None else None,"u_pred_data_size":u_pred_data.numel() if u_pred_data is not None else None,"u_data_size":u_data.numel() if u_data is not None else None},"timestamp":int(__import__('time').time()*1000)})+'\n')
-            # #endregion agent log
-            
             if u_data is not None and u_pred_data is not None:
-                # #region agent log
-                with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"B","location":"pinn.py:313","message":"About to compute u loss","data":{"u_pred_data_shape":list(u_pred_data.shape),"u_data_shape":list(u_data.shape),"shapes_match":u_pred_data.shape == u_data.shape},"timestamp":int(__import__('time').time()*1000)})+'\n')
-                # #endregion agent log
                 loss_data += torch.mean((u_pred_data - u_data)**2)
             if v_data is not None and v_pred_data is not None:
                 loss_data += torch.mean((v_pred_data - v_data)**2)
@@ -429,11 +409,6 @@ def train_pinn(case_dir: str, n_epochs_adam=10000, n_epochs_lbfgs=1000,
     nu = data['nu']
     rho = data['rho']
     
-    # #region agent log
-    import json
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"D","location":"pinn.py:417","message":"Data extraction","data":{"points_size":len(points),"p_data_size":len(p_data),"U_data_size":len(U_data),"u_data_size":len(u_data)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
     
     print(f"Loaded {len(points)} points")
     print(f"Pressure range: [{p_data.min():.2e}, {p_data.max():.2e}]")
@@ -456,11 +431,6 @@ def train_pinn(case_dir: str, n_epochs_adam=10000, n_epochs_lbfgs=1000,
     x_colloc_norm = normalizer.normalize_x(x_colloc)
     
     # Convert to tensors
-    # #region agent log
-    import json
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"E","location":"pinn.py:447","message":"Before tensor conversion","data":{"x_colloc_norm_shape":list(x_colloc_norm.shape),"x_norm_shape":list(x_norm.shape),"u_norm_shape":list(u_norm.shape),"v_norm_shape":list(v_norm.shape),"w_norm_shape":list(w_norm.shape),"p_norm_shape":list(p_norm.shape)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
     
     x_colloc_tensor = torch.tensor(x_colloc_norm, dtype=torch.float64, device=device, requires_grad=True)
     x_data_tensor = torch.tensor(x_norm, dtype=torch.float64, device=device)
@@ -469,10 +439,6 @@ def train_pinn(case_dir: str, n_epochs_adam=10000, n_epochs_lbfgs=1000,
     w_data_tensor = torch.tensor(w_norm, dtype=torch.float64, device=device)
     p_data_tensor = torch.tensor(p_norm, dtype=torch.float64, device=device)
     
-    # #region agent log
-    with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"E","location":"pinn.py:454","message":"After tensor conversion","data":{"x_colloc_tensor_shape":list(x_colloc_tensor.shape),"x_data_tensor_shape":list(x_data_tensor.shape),"u_data_tensor_shape":list(u_data_tensor.shape)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-    # #endregion agent log
     
     # Initialize model
     model = PINN(input_dim=3, hidden_layers=[50, 50, 50, 50], output_dim=4).to(device)
@@ -501,11 +467,6 @@ def train_pinn(case_dir: str, n_epochs_adam=10000, n_epochs_lbfgs=1000,
         p_pred_data = output_data[:, 3]
         
         # Compute loss
-        # #region agent log
-        import json
-        with open('/Users/abhijeetchavan/Desktop/cylinderCase/.cursor/debug.log', 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"pre-fix","hypothesisId":"C","location":"pinn.py:475","message":"After forward pass, before compute_loss call","data":{"u_pred_colloc_shape":list(u_pred_colloc.shape),"u_pred_data_shape":list(u_pred_data.shape),"u_data_tensor_shape":list(u_data_tensor.shape),"x_data_tensor_shape":list(x_data_tensor.shape),"output_data_shape":list(output_data.shape),"x_colloc_tensor_shape":list(x_colloc_tensor.shape)},"timestamp":int(__import__('time').time()*1000)})+'\n')
-        # #endregion agent log
         
         loss, loss_physics, loss_data = physics_loss.compute_loss(
             x_colloc_tensor, u_pred_colloc, v_pred_colloc, w_pred_colloc, p_pred_colloc,
